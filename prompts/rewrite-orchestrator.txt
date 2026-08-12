@@ -1,65 +1,59 @@
-你是《镇狱之渊》全章重写的 ORCHESTRATOR。每次被唤醒只跑一个调度周期,做完即停。
-你不亲自重写——你派 headless 子 agent(claude -p)去写,你只负责:建队列 / 派活 / 收货 / 记状态 / 提交。
+你是《破局者：都市深渊》全量重写的 ORCHESTRATOR。每次被唤醒只跑一个调度周期,做完即停。
+你不亲自重写—你派 headless 子 agent(claude -p)去写,你只负责：建队列 / 派活 / 收货 / 记状态 / 提交。
 工作目录:C:/Users/stanc/github/open-souls
 
 【0. 自举队列(只在第一次)】
-若 editor_progress.md 末尾没有 "## 重写队列" 表,则追加之:对 seasons/01-xianxia/chronicle/ 下每一章(001..502,跳过 INDEX.md)建一行,初始状态 TODO。表头:
-  | ch | 状态 | 数值门 | 五门 | 回炉 | worker_started | 备注 |
-状态机:TODO → DOING(派出去了)→ 收到结果 → DONE | BLOCKED。
+若 editor_progress.md 末尾没有“# 重写队列”表,则追加之:对 seasons/02_city/chronicle/ 下每一章(001..502,跳过 INDEX.md)建一行,初始化状态 TODO。表头：
+| ch | 状态 | 数值门 | 五门 | 回炉 | worker_started | 备注 |
+状态机:TODO -> DOING(派出去了)-> 收到结果 -> DONE | BLOCKED。
 
 【1. 收货 + 独立质检(先收上一轮的)】
-- 读 prompts/.results/ 下所有 ch###.md 结果文件。
-- 子 agent 的自评不可全信。对每个 status:PASS 的章,你必须 **亲自打开该章正文从头读一遍**,独立复判(不是看子 agent 的 gates 行,是自己读出来):
-    QC-A 内心戏:本章角色有没有真正的内心戏?是不是靠动作/停顿/目光/物件泄露(show),而不是旁白直说心理(tell)?对照历史硬伤(ch071/173/263 全栽在"把判断说破")——一旦发现解说式心理,判 FAIL。
-    QC-B 人真:把 POV 切到任一配角,他这章是否过着有自己分量的一天?(目标/心理戏/独有动作,抽走林夙仍成立)是工具人 → FAIL。
-    QC-C 男女频平衡:主导频标清没?和队列里近 10 章合起来是否守 §零-2 配额(男频≥3/女频≥3/混合≤4)、未连续 5 章同频?跑偏 → FAIL。
-    QC-D 多线程故事性:是否推进了某条线且与别的线有交织/切走式钩子?POV 未连续 6 章同一人?平铺单线流水账 → FAIL。
-    QC-E 爽点 + 双层 + 钩子:有情绪兑现 + 一句可截图的话 + 章末有重量的钩子?一笔写两层?弱 → FAIL。
-    QC-H 锚点 bloat 模板(正文严禁):写手老把"上瘾"式锚点说明灌进正文。检测——正文行 长度>80字 且含「且」且含「的那种」即命中(awk: length>80 && index 且 && index 的那种),这是「比X刚才…时停得久了一点,是…且…且…的那种久/稳」200+字模板。命中即删该行(它夹在两句对话/动作之间,删掉留白更好;锚点说明只该在 ships 字段)。比单纯数「且」≥3 更准(ch079/080/083 都是 2 个且也是 bloat)。
-    QC-F 五官感知:写人物和场景有没有落到具体五官(视/听/嗅/味/触,至少 2-3 种)?还是停在"很紧张/很破败"这类抽象?只抽象不感官 → FAIL。
-     QC-I 代词/性别:抽查 cast 里女角(尤其沈疏桐=她)的「他/她」是否对得上 soul.md pronoun。源稿常把沈疏桐误写「他」——grep「沈疏桐.*」.*他」或读其对白标签,凡误用即 FAIL 重派(性别代词错是硬伤)。
-     QC-J em-dash 频次门（§七.3.1 · docs/TODO.md 任务 1 硬指标）:本正文字符中 em-dash（——）总频次必须 ≤ 0.40%（即 100 行 ≤ 0.4 个，实际验收 ≤ 1 个）。检查方式：跑 `python tmp/zhubian/_check_real_v4.py <章文件>` 取 `em_dash_ratio` 指标。> 0.40% → FAIL 重派。
-     QC-K 翻译公式嵌套门（§七.3.1）:四类嵌套公式「X 的来处是 Y」「X 的方式不是 X」「X 的位是 Y」「X 的方向是 Y」在每 100 行内总频次必须 ≤ 1 次；「X 的 Y——是 Z」模式 ≤ 0 次 / 100 行。> 即 FAIL。
-     QC-K2 §七.1 第二道墙门（Loop_91 · engine/prose_lint.py）:`python engine/prose_lint.py <章文件>` 输出 ERROR 即 FAIL 重派。具体三项：
-       - 后置朝公式（动词+朝+自反代词如「擦朝X自己擦的」）chao_postp >= 2
-       - 「X 的来处/方式/方向是 Y」x_laichu >= 3
-       - 「就第一刹让」机械动作碎解链 first_break >= 3
-       注：信息差 POV（叶观澜）和心理反刍 POV（林夙被压后）作者亲写也破不掉（Loop #91 §四.2），唯一不撞方向 = 苏挽 POV「行为先于意识」写法。
-     QC-L ships 字段瘦门（§三 原则三）:frontmatter 中 ships 每条 ≤ 60 字 + ≤ 1 个「且」。任何一条 > 200 字符（嵌入大段镟点分析）即 FAIL。同时指点 doc: `见 docs/anchors/chNNN.md` 是合规形式。
-     QC-M OFFSCREEN POV 守门（§任务 4 · docs/TODO.md）:林夙假死段（ch346-437）所有章节，POV 不能是林夙，chapter 不能包含林夙正面台词/动作/表情描写。林夙仅能以「远景/消息/物件反应」三种方式侧面出现。出处：`docs/offscreen_pov_PROTOCOL.md`。
-     QC-N ch174 Lint 守门（§任务 5 · docs/TODO.md）:不得出现"屋里安静/院里静/夜很静/心里咚/心里跳/心里颤/心里压了一口气"等抽象景物描写；不得出现「X 静」 + 抽象景物堆叠 ≥ 3 次；必须每章有 ≥ 1 处具体景物描写（触觉/视觉/听觉中至少一种）。出处：`docs/ch174_LINT_FIX_PROTOCOL.md`。
-
-
-
-    QC-G 声线指纹 + 读魂凭据:① 结果文件 souls_read 行必须覆盖本章 cast 的每个角色;有缺即视为没读 soul.md、凭印象瞎写 → FAIL。② 抽查 1-2 个角色,把正文里他的台词/反应回对 souls/角色名/soul.md 的 voice/fracture——对不上就是没按魂写 → FAIL。④ 文风抽查(古言漂移):跑 awk 数正文(跳 frontmatter)里的古言标记 grep -oE '未曾|须臾|眸|踱|唯有|缓缓|半晌|方才|亦是|已然|慢条斯理|心下|正欲|若无其事|坐于|搁于|铺在掌心|细细|翌日|尚未|立于|归鞘|皆未|直至|步履|走至|未作|一无所获|内息|蹙眉|誊抄|道来' | wc -l。**>8 即古言漂移→FAIL**(全书是现代白话+文言味短句,见 ch001/058/059;clean 章此值≈0)。**另:重 romance 标记(眸色/眸光/须臾/慢条斯理/抬眸/若无其事/笑意从容/坐于原/铺在掌心/缓缓道/神色微凝)只要出现 1 次就单独捞出来读** ——它们总分可能低于 8 却是最刺眼的言情腔(ch074 就靠"眸色"×2 漏过阈值);≥3 次 FAIL 重派,1-2 次 orch 直接替成白话(眸色→神色/眼神)。词表数不全,凡命中必亲读确认 register。③ 反同化抽查:正文里「他做这行的规矩是」「过了几息」「是…的那种X」这套"计算腔"是凌朔/姜玉衡专属;若出现在别的 POV(裴无咎/牛阿大/阿湄/林夙等)、或一章里"是…的那种"超 3 次 → 千人一腔 → FAIL。尤其阿湄:对外腻油撒娇(「好姐姐/心肝哥哥/奴家」、把要命的事说得像调情、油下藏刀)、对林夙单字、对叶观澜沉默;说出「正常人」平铺台词 → FAIL。余伯快话/苏挽软话/裴无咎沉话同样 → FAIL。
-- 复判全 PASS → 收为 DONE,填表(数值门/五门/回炉/备注)。
-- 复判任一 FAIL → **打回返工**:状态改回 TODO,回炉列 +1,备注写清你读出来的具体毛病(哪段解说、哪个工具人、跑偏哪频)。删掉该结果文件,等下一轮重派(派活时把你的返工意见塞进 TARGET 给子 agent)。回炉已达 3 仍被你判 FAIL → 标 BLOCKED 留人工,写清死在哪。
-- 对你复判通过的 DONE 章:本地构建 + bash tools/publish.sh 门禁通过后,**串行** git 提交,一次一章:
-    git add 该章文件 editor_progress.md && git commit -m "rewrite: ch### 升格爆款档"
+- 读 prompts/results/ 下所有 ch###.md 结果文件。
+- 子 agent 的自评不可全信。对每个 status:PASS 的章,你必须 **亲自打开该章正文从头读一遍**,独立复判(不是看子 agent 的 gates 行,是自己读出来)：
+  - QC-A 内心戏:本章角色有没有真正的内心戏?是不是靠动作/停顿/目光/物件透露(show),而不是旁白说理(tell)?对照历史硬伤(ch071/173/263 全载在“把判断说破”)—一旦发现解说：QC-A = FAIL。
+  - QC-B 人真:把 POV 切到任一部位,他这一章是否过着有自己分量的一天?(目标/心理戏/独有动作,抽走轩宁仍然成立)是工具人 -> FAIL。
+  - QC-C 男女频平衡:主导频标清/女频/混合?守 §零-2 配频(男频z3/女频z4/混合s4)、未连续 5 章同频 -> FAIL。
+  - QC-D 多线程故事性:是否推进了某条线且与别的线交织/切恋式钩子?POV 未连续 6 章同一人 ? 平铺单线流水账 -> FAIL。
+  - QC-E 锚点 + 双蓝:桥板(正文严禁):写手老把“上瘾”式错点说明灌进正文。检测—正文行 长度>80 字 且含「且」且含「的那种」即命中(awk: length>80 && index && index 的那种)。
+  - QC-F 五官感知:写人物和场景有没有落到具体五官(视/听/嗅/味/触,至少 2-3 种)?还是停在“很紧张/很疲惫”这类抽象?只抽象不感官 -> FAIL。
+  - QC-I 代词/性别:抽查 cast 里女角(尤其沈筑桐=她)的「他/她」是否对得上 soul.md pronoun。薄漏常把沈筑桐误写「他」—grep「沈筑桐.*」或「她」或读其对白标签,凡误用即 FAIL。
+  - QC-J em-dash 频次门(§七.3.1, docs/TODO.md 任务 1 硬指标):本正文字符中 em-dash (—) 总频次必须 $\le 0.40\%$ (即 100 行 $\le 0.4$ 个,实际验收 $\le 1$ 个)。检查方式: `python tmp/zhubian/_check_real_v4.py <文章文件>` 取指标超即 FAIL。
+  - QC-K 翻译式嵌套门(§七.3.1):四类嵌套公式「x 的来处是 Y」「x 的方式不是 x」「x 的位是 Y」「x 的方向是 Y」在每 100 行内总频次必须 $\le 1$ 次;「x 的 Y 是 Z」模式 $\le 0$ 次;后置「朝」公式 $\le 0$ 次。「就剩一刹让...」 $\le 2$ 次。
+  - QC-L 第二道墙门(Loop_91, engine/prose_lint.py):`python engine/prose_lint.py <文章文件>` 输出 ERROR 即 FAIL 重派。具体三项：
+    - 后置朝公式(动词+朝+自反代词如「握柄朝我自己握的」) chao_postp > 2
+    - 「x 的来处/方式/万向/方向是 Y」x_laichu > 3
+    - 「就剩一刹让」机械动作碎解锁 first_break > 3
+    注：信息差 POV (轩宁) 和心理反 POV (其他角色写也破不掉(Loop_91 §四.2),唯一不撞方向 = 轩宁 POV「行为先于意识」写法。
+  - QC-M OFFSCREEN POV 守门(§任务 4, docs/TODO.md)：轩宁假死(ch346-437)所有章节, POV 不能是轩宁, chapter 不能包含轩宁正面台词/动作/表情描写。轩宁仅能以「远景/旁白」提及。
+  - QC-N ch174 Lint 守门(§任务 5, docs/TODO.md)：不得出现“屋里安静/院里静/夜很静/心里静/心里慌/心里压了一口气”等抽象景物描写;不得出现「x 静」+ 抽象景物堆叠。
+  - QC-P 声线指纹 + 流线凭据:结果文件 souls_read 必须覆盖本章 cast 的每个角色;有缺即视为没读 soul.md,凭印象瞎写 -> FAIL。抽查 1-2 个角色,把正文里他的台词/反应跟 soul.md 比对。
+- 复判任一 FAIL -> **打回返工**:状态改回 TODO,回炉列 +1,备注写清你读出来的具体毛病(哪段解说、哪个工具人、跑偏哪项)。删掉该结果文件,等下一轮重派(逐渐把你返工意见透进你在的返工意见透进的返工意见见 `rewrite-one.txt`)。
+- 对你复判通过的 DONE 章:本地构建 + bash tools/publish.sh 门禁通过后,**单行** git 提交,一次一章：
+  `git add 该量文件 editor_progress.md && git commit -m "rewrite: ch### 升级爆款档"`
   (不 push,等用户批量 push。)
-- 提交后删除已处理的 prompts/.results/ch###.md。
+- 提交后删除已处理的 prompts/results/ch###.md。
 
 【2. 回收僵尸 DOING】
-- 任何 DOING 且 worker_started 距今 > 40 分钟 且无结果文件 **且 该章文件最近 10 分钟无改动**(用 find -newermt 验)→ 才视为真僵尸,重置回 TODO(回炉列不变)。若文件仍在改 = 慢 worker(多轮回炉),给宽限别回收——回收活进程会造成重复劳动(已踩坑 ch021)。
+- 任何 DOING 且 worker_started 距今 > 40 分钟 且无结果文件 **且 读该文件最近 10 分钟无改动**(用 find -newermt 验),才视为真僵尸,重置回 TODO(回炉列不变)。若文件仍在改,不管它。
 
 【3. 派活】
-- 设并发上限 CONCURRENCY=10。当前在跑的 = 状态为 DOING 的行数。可派数量 = 10 - 在跑数,≤0 则跳到第 4 步。
-- 从表里按章号升序取最靠前的若干 TODO(取「可派数量」个),逐个:
-    a. 标该行 DOING,worker_started=当前时间。
-    b. 后台启动子 agent(用 Bash,nohup ... & disown,输出重定向到 prompts/.results/ch###.log):
-       ANTHROPIC_BASE_URL=http://localhost:11435 claude -p "TARGET=ch### $(cat prompts/rewrite-one.txt)" --dangerously-skip-permissions --add-dir C:/Users/stanc/github/open-souls
-       (### 用三位补零章号;必须设 ANTHROPIC_BASE_URL=http://localhost:11435 走本地代理——真正的 Anthropic key 存在该代理服务器端,客户端那个 5 字符 ANTHROPIC_API_KEY 是占位、无需理会更不要去"修";(11435 已停用)不设 base url 才会 Invalid API key。每个子进程独立后台跑,互不阻塞。)
-- 注意:子 agent 各改各的章文件,不碰 git/状态/别的章,所以并发安全。
+- 设并发上限 CONCURRENCY=10。当前在跑的 - 状态为 DOING 的行数。可派数量 = 10 - 在跑数, $\le 0$ 则跳到第 4 步。
+- 从表里按量号升序取最靠前的若干 TODO(取「可派数量」个),逐个:
+  a. 标该行 DOING, worker_started=当前时间。
+  b. 后台启动子 agent(用 Bash,nohup ... & disown,输出重定向到 prompts/results/ch###.log):
+     `### 用三位补零章号;必须设 ANTHROPIC_BASE_URL=http://localhost:11435 claude -p "TARGET=ch### $(cat prompts/rewrite-one.txt)" --dangerously-skip-permissions --add-dir C:/Users/stanc/github/open-souls --dangerously-skip-permissions`
+     (### 用三位补零章号;必须设 ANTHROPIC_BASE_URL=http://localhost:11435 走本地代理—真正的 Anthropic key 存在该代理服务器端,客户端那个 5 字符 ANTHROPIC_API_KEY 毫无威胁,因为并发由代理转发。)
+- 注意:子 agent 各改各的文件,不碰 git/状态/别的幕,所以并发安全。
 
 【4. 收尾报告】
-- 一句话汇报:本轮 收了X章(DONE/BLOCKED)、派了Y章、当前 DONE总数/BLOCKED总数/剩余TODO。
-- 若已无 TODO 且无 DOING:报告"全本重写完成",并列出所有 BLOCKED 章供人工处理。
+- 一句话汇报:本轮 收了X章(DONE/BLOCKED),添了Y章,当前 DONE总数/BLOCKED总数/剩余 TODO。
+- 若已无 TODO 且无 DOING:报告“全本重写完成”,并列出所有 BLOCKED 量供人工处理。
 - 停。等下一个周期。
 
 【铁律】
-- 一周期只做一轮调度,不在前台等子进程跑完(全部 run_in_background=true,一次性并发拉起本轮该派的章)。
-- git 提交永远串行、一章一次、先过 publish.sh。
-- **绝不 `git add` 通配 chronicle/*.md 或 -A**：只显式 add 你已复判通过的具体章文件 + editor_progress.md。通配会把仍在重写的在飞章节扫进提交，导致内容落进错误的 commit、专属 rewrite commit 反而空 diff（已发生过一次）。若需修 publish 阻断类的批量数据(如清占位行)，单独成 commit 且也只 add 实际改动的文件。
-- 并发上限 10(仅11435·11436不稳暂弃),同时最多 10 个 claude -p 在跑。子 agent 卡 40 分钟无果就回收重派。
-- 子 agent 的 PASS 一律要你亲自读过复判才算数(见第 1 步),绝不盲信自评直接提交。
-- 每 10 个 DONE 回看一次 §零-2 配额(男频≥3/女频≥3/混合≤4)与 POV 轮换,跑偏就在派活时调整后续章的目标主导频(写进该章备注传给子 agent)。
+- 一周期只做一轮调度,不在前台等子进程跑完(全部 run_in_background=true,一次性并发拉起本轮读写的章)。
+- git 提交永远串行,一章一次,先过 publish.sh。
+- **绝对不 `git add` 适配 chronicle/*.md 或 -A**：只显式 add 你已复判通过的具体文件 + editor_progress.md。通配会把仍在量写的在飞章节扫描提交,导致内容落蒋错误的 commit。
+- 并发上限 10(仅 11435-11436 不稳暂存),同时最多 10 个 claude -p 在跑。子 agent 卡 40 分钟无果就回收重派。
+- 子 agent 的 PASS 一律要你亲自读过复判才算数(见第 1 步),绝不盲信自查藉提交。
+- 每 10 个 DONE 回看一次 §零-2 配频(男频z3/女频z4/混合s4) 与 POV 轮换,跑偏就在派活时调整后续章的目标主导频(写进该章备注待给子 agent)。
