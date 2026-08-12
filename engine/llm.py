@@ -45,7 +45,7 @@ def complete(system, user, scene_weight=3, max_tokens=1100):
         try:
             with urllib.request.urlopen(req, timeout=120) as r:
                 data = json.load(r)
-                   with urllib.request.urlopen(req, timeout=120) as r:
+        with urllib.request.urlopen(req, timeout=120) as r:
             data = json.load(r)
             print(f"DEBUG_RAW_DATA: {data}") # 
             break
