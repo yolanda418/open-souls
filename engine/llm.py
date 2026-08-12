@@ -7,20 +7,33 @@ TIERS = {"light": "claude-haiku-4-5", "heavy": "claude-sonnet-4-6", "peak": "cla
 def route(w):
     return TIERS["peak"] if w >= 8 else TIERS["heavy"] if w >= 5 else TIERS["light"]
 
-
 def complete(system, user, scene_weight=3, max_tokens=1100):
-    if os.environ.get("VILLAGE_MOCK") == "1" or not os.environ.get("ANTHROPIC_API_KEY"):
+    api_key = os.environ.get("OPENROUTER_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
+    if os.environ.get("VILLAGE_MOCK") == "1" or not api_key:
         return _mock(user)
+    
+    raw_model = route(scene_weight)
+    if not raw_model.startswith("anthropic/") and not "/" in raw_model:
+        model_name = f"anthropic/{raw_model}"
+    else:
+        model_name = raw_model
+
     body = json.dumps({
-        "model": route(scene_weight), "max_tokens": max_tokens,
-        "system": system, "messages": [{"role": "user", "content": user}],
+        "model": model_name,
+        "max_tokens": max_tokens,
+        "system": system,
+        "messages": [{"role": "user", "content": user}],
     }).encode()
-    base_url = os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com").rstrip("/")
+
+    base_url = os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").rstrip("/")
     req = urllib.request.Request(
-        f"{base_url}/v1/messages", data=body,
-        headers={"content-type": "application/json",
-                 "x-api-key": os.environ["ANTHROPIC_API_KEY"],
-                 "anthropic-version": "2023-06-01"})
+        f"{base_url}/chat/completions", data=body,
+        headers={
+            "content-type": "application/json",
+            "authorization": f"Bearer {api_key}",
+            "HTTP-Referer": "https://github.com/yolanda418/open-souls",
+            "X-Title": "Open Souls"
+        })
     try:
         retries = int(os.environ.get("LLM_RETRIES", "2"))
     except (TypeError, ValueError):
