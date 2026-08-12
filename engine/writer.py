@@ -114,7 +114,7 @@ def _read(p, n=1600):
     return open(p, encoding="utf-8").read()[:n] if os.path.exists(p) else ""
 
 
-def _json_call(user, scene_weight, attempts=2, max_tokens=None)):
+def _json_call(user, scene_weight, attempts=2, max_tokens=None):
     """Call the provider for one object response and retry malformed output once."""
     last_error = None
     for attempt in range(attempts):
