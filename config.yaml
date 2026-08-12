@@ -1,13 +1,14 @@
-rating: 暧昧                # 默认尺度：温馨/暧昧/成人擦边/黑深残（硬线由审校卡）
-cadence: "0 */6 * * *"        # 多久续写一回
-target_chapter_chars: 1500    # 每回篇幅（按用户口径"可出片/精品"实际正文 ≥ 1500 字·frontmatter 6 字段+正文 1500+）
-chapters_per_beat: 3          # 每个 arc 节拍几回，控制赛季节奏
-default_pressure: 0.2         # 日常张力（0 安稳 … 1 = 0号宇宙）
-newcomer_priority: true       # 新进村的角色优先被写进剧情
+rating: 悬疑      # 调整为你的核心题材：都市、硬核悬疑、反转
+cadence: "0 */6 * * *"  # 自动化续写的时间频率（可根据需要调整）
+target_chapter_chars: 3000  # 按照你的最新要求，单章目标字数提升至 3000 字
+chapters_per_beat: 3    # 每个剧情节拍的章节数
+default_pressure: 0.5   # 日常张力（悬疑小说需要更高的压迫感和节奏感，建议设为 0.5 左右）
+newcomer_priority: true # 新登场角色优先推进剧情
+
 model_tiers:
   light: claude-haiku-4-5
   heavy: claude-sonnet-4-6
-  peak:  claude-opus-4-8
+  peak: claude-opus-4-8
 
 delegation:
-  max_concurrent_children: 12  # 提升到 12 以支持 12 subagent 并行 polish (open-souls 2026-07-08)
+  max_concurrent_children: 12  # 并行处理子任务的数量
