@@ -6,11 +6,10 @@ import urllib.error
 import urllib.request
 
 TIERS = {
-    "light": "anthropic/claude-haiku-4.5",
-    "heavy": "anthropic/claude-sonnet-4.6",
-    "peak": "anthropic/claude-opus-4.8",
+    "light": "openrouter/free",
+    "heavy": "openrouter/free",
+    "peak": "openrouter/free",
 }
-
 
 def route(scene_weight):
     try:
