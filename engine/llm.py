@@ -6,9 +6,9 @@ import urllib.error
 import urllib.request
 
 TIERS = {
-    "light": "openai/gpt-oss-120b:free",
-    "heavy": "openai/gpt-oss-120b:free",
-    "peak": "openai/gpt-oss-120b:free",
+    "light": "google/gemma-4-31b-it:free",
+    "heavy": "google/gemma-4-31b-it:free",
+    "peak": "google/gemma-4-31b-it:free",
 }
 
 def route(scene_weight):
