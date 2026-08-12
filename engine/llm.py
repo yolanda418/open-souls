@@ -42,15 +42,22 @@ def complete(system, user, scene_weight=3, max_tokens=None):
 
         max_tokens = 7000 if weight >= 8 else 4000 if weight >= 5 else 1800
 
-    payload = {
-        "model": model,
-        "messages": [
-            {"role": "system", "content": system},
-            {"role": "user", "content": user},
-        ],
-        "max_tokens": max_tokens,
-        "temperature": 0.8,
-    }
+   payload = {
+    "model": model,
+    "messages": [
+        {"role": "system", "content": system},
+        {"role": "user", "content": user},
+    ],
+    "max_tokens": max_tokens,
+    "temperature": 0.7,
+    "response_format": {
+        "type": "json_object"
+    },
+    "provider": {
+        "order": ["Google AI Studio"],
+        "allow_fallbacks": False,
+    },
+}
 
     data = json.dumps(
         payload,
