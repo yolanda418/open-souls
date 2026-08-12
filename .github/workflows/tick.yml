@@ -35,7 +35,7 @@ jobs:
 
       - name: 运行续写引擎
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: python engine/village.py --ticks ${{ github.event.inputs.ticks || 1 }} --pressure ${{ github.event.inputs.pressure || 0.2 }}
 
       - name: 文笔上线门
