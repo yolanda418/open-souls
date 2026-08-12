@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-import os, sys
+import os
+import sys
 sys.stdout.reconfigure(encoding='utf-8')
-os.chdir(r'c:\Users\stanc\github\open-souls\seasons\01-xianxia\chronicle')
+os.chdir('seasons/02_city')
 
 samples = [10, 11, 12, 50, 100, 150, 200, 250, 251, 300, 500, 584, 700, 900, 1000]
 for n in samples:
