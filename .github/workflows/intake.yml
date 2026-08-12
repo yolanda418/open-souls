@@ -23,7 +23,7 @@ jobs:
       - name: pip install pyyaml
         run: pip install pyyaml
 
-      - name: 表单 -> JSON
+      - name: 表单转JSON并运行引擎
         env:
           BODY: ${{ github.event.issue.body }}
         run: |
@@ -43,8 +43,9 @@ jobs:
           json.dump(out, open("/tmp/submission.json","w"), ensure_ascii=False)
           print(out)
           PY
+          python engine/intake.py /tmp/submission.json
 
-      - name: 开 PR
+      - name: 自动开PR提交更改
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
