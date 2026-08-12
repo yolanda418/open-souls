@@ -164,7 +164,7 @@ def best_opening(ctx, spec, rating, n=3):
             "每个标一种认知缺口（信息差/道德困境/身份谜题/损失厌恶），并自评开场强度 0-10"
             "（强度看：第一行是否直接凿洞、是否克制不解释）。\n"
             '只输出 JSON：{"candidates":[{"opening":str,"gap":str,"intensity":0-10}]}')
-    cands = (_json_call(user, scene_weight=3) or {}).get("candidates") or []
+    cands = (_json_call(user, scene_weight=3,max_tokens=700 ) or {}).get("candidates") or []
     cands = [candidate for candidate in cands if isinstance(candidate, dict)]
     return max(cands, key=lambda c: c.get("intensity", 0)) if cands else None
 
