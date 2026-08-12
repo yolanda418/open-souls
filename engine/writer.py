@@ -114,7 +114,7 @@ def _read(p, n=1600):
     return open(p, encoding="utf-8").read()[:n] if os.path.exists(p) else ""
 
 
-def _json_call(user, scene_weight, attempts=2):
+def _json_call(user, scene_weight, attempts=2, max_tokens=None)):
     """Call the provider for one object response and retry malformed output once."""
     last_error = None
     for attempt in range(attempts):
@@ -126,7 +126,12 @@ def _json_call(user, scene_weight, attempts=2):
             )
         try:
             result = llm.parse_json(
-                llm.complete(REGISTER, user + retry_note, scene_weight=scene_weight)
+                llm.complete(
+                REGISTER,
+                user + retry_note,
+                scene_weight=scene_weight,
+                max_tokens=max_tokens,
+                )
             )
             if not isinstance(result, dict):
                 raise ValueError("structured response must be an object")
@@ -147,8 +152,10 @@ def plan(ctx, world, beat, rating, weight):
             '\n只输出 JSON：{"hook":"章末钩子","payoff":"本回的爽点或痛点",'
             '"contrast":"利用谁的哪个反差","trope":"用哪个桥段(标来源 中/日/西)",'
             '"pov":"跟谁的视角","turn":"一个意外转折"}')
-    return _json_call(user, scene_weight=max(2, weight - 2))
-
+    return _json_call(
+    user,
+    scene_weight=max(2, weight - 2),
+    max_tokens=700,)
 
 def best_opening(ctx, spec, rating, n=3):
     """生成 n 个开场，自评开场强度(认知缺口)，取最高那个。爆款是试出来的：试 n 个，留赢家。"""
