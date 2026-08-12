@@ -323,8 +323,8 @@ def tick(cfg, souls, sdir, world, ties, arc, pressure):
     except Exception as exc:
         # A provider/parser failure must be a clean no-op: no state, ties,
         # memories, arc, or chapter file may be advanced by a partial run.
-        print(f"generation rejected: {type(exc).__name__}")
-        return
+        print(f"generation rejected: {type(exc).__name__}: {exc}")
+        raise
 
     # 文笔检阅门：到上限还没揉顺（中英混写 / 逗号碎句）就拒发——
     # 宁可这一回不更，也不让垃圾稿上线。不写文件、不动关系/记忆、不推进节拍。
