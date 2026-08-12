@@ -20,34 +20,40 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: 安全兜底处理表单
-        run: |
-          python - << 'PY'
-          import os, json
-          body = os.environ.get("BODY", "")
-          print("收到表单内容，安全解析中...")
-          
-          # 即使内容格式不匹配，也兜底生成一个默认的角色数据，绝不让脚本崩掉
-          submission = {
-              "name": "新角色",
-              "one_line": "暂无描述",
-              "drives": "未知",
-              "says": "",
-              "does": "",
-              "under_pressure": "",
-              "voice": "",
-              "backstory": "",
-              "boundaries": ""
-          }
-          
-          os.makedirs("/tmp", exist_ok=True)
-          with open("/tmp/submission.json", "w", encoding="utf-8") as f:
-              json.dump(submission, f, ensure_ascii=False)
-          print("表单预处理完成。")
-          PY
+      - name: 表单转JSON并运行引擎
         env:
           BODY: ${{ github.event.issue.body }}
-
-      - name: 自动提交更改（安全跳过）
         run: |
-          echo "表单进村流程已安全执行，跳过未找到的目录，保持绿灯。"
+          python - << 'PY'
+          import os, re, json
+          body = os.environ.get("BODY")
+          M = {"角色名": "name", "一句话": "one_line", "想要什么": "drives",
+               "裂缝-嘴上说": "says", "裂缝-实际上": "does", "被逼到墙角会怎样": "under_pressure",
+               "说话方式": "voice", "背景": "backstory", "边界": "boundaries"}
+          out, secs = {}, re.split(r"\n###\s+", "\n" + body)
+          for s in secs:
+              if "\n" not in s: continue
+              head, val = s.split("\n", 1)
+              head, val = head.strip(), val.strip()
+              for k,v in M.items():
+                  if head.startswith(k): out[v]=val
+          json.dump(out, open("/tmp/submission.json","w"), ensure_ascii=False)
+          print(out)
+          PY
+          python engine/intake.py /tmp/submission.json
+
+      - name: 自动开PR提交更改
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NAME=$(python -c "import json;print(json.load(open('/tmp/submission.json'))['name'])")
+          BR="join/issue-${{ github.event.issue.number }}"
+          git config user.name "村子史官"
+          git config user.email "chronicler@village.local"
+          git checkout -b "$BR"
+          git add souls
+          git commit -m "新角色录入 : $NAME (${{ github.event.issue.number }})"
+          git push -u origin "$BR"
+          gh pr create --fill --base main --head "$BR" \
+            --title "[新角色] $NAME" \
+            --body "来自表单 ${{ github.event.issue.number }}。校验通过，都市疑难新角色准备登场。"
