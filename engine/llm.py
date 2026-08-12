@@ -5,11 +5,13 @@ import time
 import urllib.error
 import urllib.request
 
+
 TIERS = {
     "light": "google/gemma-4-31b-it:free",
     "heavy": "google/gemma-4-31b-it:free",
     "peak": "google/gemma-4-31b-it:free",
 }
+
 
 def route(scene_weight):
     try:
@@ -28,9 +30,7 @@ def complete(system, user, scene_weight=3, max_tokens=None):
     api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
 
     if not api_key:
-        raise RuntimeError(
-            "OPENROUTER_API_KEY is not set."
-        )
+        raise RuntimeError("OPENROUTER_API_KEY is not set.")
 
     model = route(scene_weight)
 
@@ -42,22 +42,22 @@ def complete(system, user, scene_weight=3, max_tokens=None):
 
         max_tokens = 7000 if weight >= 8 else 4000 if weight >= 5 else 1800
 
-   payload = {
-    "model": model,
-    "messages": [
-        {"role": "system", "content": system},
-        {"role": "user", "content": user},
-    ],
-    "max_tokens": max_tokens,
-    "temperature": 0.7,
-    "response_format": {
-        "type": "json_object"
-    },
-    "provider": {
-        "order": ["Google AI Studio"],
-        "allow_fallbacks": False,
-    },
-}
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+        "max_tokens": max_tokens,
+        "temperature": 0.7,
+        "response_format": {
+            "type": "json_object"
+        },
+        "provider": {
+            "allow_fallbacks": True,
+            "data_collection": "allow"
+        },
+    }
 
     data = json.dumps(
         payload,
@@ -76,6 +76,8 @@ def complete(system, user, scene_weight=3, max_tokens=None):
         },
     )
 
+    last_error = "unknown error"
+
     for attempt in range(3):
         try:
             with urllib.request.urlopen(
@@ -85,6 +87,7 @@ def complete(system, user, scene_weight=3, max_tokens=None):
                 raw = response.read().decode("utf-8")
 
             result = json.loads(raw)
+
             choices = result.get("choices", [])
 
             if not choices:
@@ -92,7 +95,8 @@ def complete(system, user, scene_weight=3, max_tokens=None):
                     f"OpenRouter returned no choices: {raw[:1500]}"
                 )
 
-            content = choices[0].get("message", {}).get("content", "")
+            message = choices[0].get("message", {})
+            content = message.get("content", "")
 
             if isinstance(content, list):
                 content = "".join(
@@ -100,6 +104,9 @@ def complete(system, user, scene_weight=3, max_tokens=None):
                     for item in content
                     if isinstance(item, dict)
                 )
+
+            if content is None:
+                content = ""
 
             content = str(content).strip()
 
